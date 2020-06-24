@@ -1,0 +1,215 @@
+---
+title: "Playoff Prediction 2020"
+author: "Kyle Olsen"
+date: "2/12/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+library(psych)
+library(caret)
+library(rminer)
+library(tidyverse)
+library(rmarkdown)
+library(readr)
+library(ggplot2)
+library(readxl)
+library(klaR)
+library(MASS)
+library(aod)
+library(dplyr)
+library(IMTest)
+library(corrplot)
+library(IMTest)
+library(partykit)
+lax <- read_xlsx("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020/Lacrosse Season Stats (2014 - 2019).xlsx")
+nlax <- read_xlsx("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020/lax new.xlsx")
+```
+
+
+```{r cars}
+rows <- createDataPartition(lax$Final_4, times = 1, p = .7, list = FALSE)
+
+train <- lax[rows,]
+test <- lax[-rows,]
+
+colnames(lax)
+head(lax)
+```
+
+```{r}
+lax_cor <- lax[,c("Win_Pct.","Margin","Fos_Pct.", "GB_Per_Game", "Clear_Pct.", "AST_Per_Game", "Playoffs")]
+
+lax_cor_2 <- cor(lax_cor)
+corrplot(lax_cor_2, jpeg("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020//Correlation Matrix.jpeg", width=450, height=500 ))
+```
+
+```{r}
+summary(lax)
+summary(nlax)
+str(lax)
+str(nlax)
+
+table(nlax$Conference)
+colnames(lax)
+colnames(nlax)
+
+```
+
+
+```{r}
+pairs.panels(lax[c("Win_Pct.", "Goals", "Goals_Allowed", "Margin", "EMO_Pct.",  "OPP_EMO_Pct.", "Fos_Pct.", "Shots", "Shot_Pct.", "GB_Per_Game", "Clear_Pct.", "AST_Per_Game")])
+```
+
+
+```{r}
+#Win_Pct. + Margin + Fos_Pct. + GB_Per_Game + AST_Per_Game + Clear_Pct. 
+
+ggplot(lax, aes(x=Win_Pct., y=Margin, color = Result)) +
+  geom_point() +
+  #stat_smooth(se = FALSE) +
+  ylab("Margin") +
+  xlab("Win Percentage") +
+  ggtitle("Win Percentage and Goal Differential") +
+  jpeg("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020//Win Percentage and Goal Differential.jpeg", width=500, height=320 )
+
+ggplot(lax, aes(x=Win_Pct., y=Fos_Pct., color = Result)) +
+  geom_point() +
+  #stat_smooth(se = FALSE) +
+  ylab("Face Off Win Percentage") +
+  xlab("Win Percentage") +
+  ggtitle("Win Percentage and Face Off Percentage")
+
+ggplot(lax, aes(x=Win_Pct., y=GB_Per_Game, color = Result)) +
+  geom_point() +
+  #stat_smooth(se = FALSE) +
+  ylab("Groun Balls per Game") +
+  xlab("Win Percentage") +
+  ggtitle("Win Percentage and Ground Balls")
+
+ggplot(lax, aes(x=Win_Pct., y=Clear_Pct., color = Result)) +
+  geom_point() +
+  #stat_smooth(se = FALSE) +
+  ylab("Clear Percentage") +
+  xlab("Win Percentage") +
+  ggtitle("Win Percentage and Clear Percentage")
+
+ggplot(lax, aes(x=Win_Pct., y=AST_Per_Game, color = Result)) +
+  geom_point() +
+  #stat_smooth(se = FALSE) +
+  ylab("Assist per Game") +
+  xlab("Win Percentage") +
+  ggtitle("Win Percentage and Assist per Game")
+```
+
+
+
+```{r}
+model <- train(as.factor(Playoffs) ~ Win_Pct. + Margin + Fos_Pct., 
+      data = train,
+      preProcess = c("center","scale"),
+      method="knn")
+
+# summary(lm(Playoffs~ Win_Pct. + Margin, train))
+
+# Fos_Pct. + GB_Per_Game + AST_Per_Game + Clear_Pct.
+
+# updated to Differential per games played
+```
+
+
+```{r}
+#New Model
+model_2 <- train(as.factor(Playoffs) ~ Margin + Win_Pct. + AST_Per_Game * Shot_Pct. + Shots + GB_Per_Game + Fos_Pct. + EMO_Pct.,
+      data = train,
+      preProcess = c("center","scale"),
+      method="knn")
+```
+
+
+
+
+
+
+```{r pressure, echo=FALSE}
+predict_model_2 <- predict(model_2, test)
+confusionMatrix(table(predict_model_2, test$Final_4))
+
+```
+
+
+
+```{r}
+predict_model <- predict(model, test)
+confusionMatrix(table(predict_model, test$Final_4))
+```
+
+
+
+
+```{r}
+# Conference Champion Review
+C <- nlax[c("Conference","Team","Win_Pct.")]
+ACC <- subset(C, Conference == "ACC")
+AE <- subset(C, Conference == "America East")
+BE <- subset(C, Conference == "Big East")
+B10 <- subset(C, Conference == "Big Ten")
+Ind <- subset(C, Conference == "DI Independent")
+Ivy <- subset(C, Conference == "Ivy League")
+Maac <- subset(C, Conference == "MAAC")
+NEC <- subset(C, Conference == "NEC")
+Patriot <- subset(C, Conference == "Patriot")
+SoCon <- subset(C, Conference == "SoCon")
+
+aggregate(Win_Pct.~Team, data=ACC, max)
+aggregate(Win_Pct.~Team, data=AE, max)
+aggregate(Win_Pct.~Team, data=BE, max)
+aggregate(Win_Pct.~Team, data=B10, max)
+aggregate(Win_Pct.~Team, data=Ind, max)
+aggregate(Win_Pct.~Team, data=Ivy, max)
+aggregate(Win_Pct.~Team, data=Maac, max)
+aggregate(Win_Pct.~Team, data=NEC, max)
+aggregate(Win_Pct.~Team, data=Patriot, max)
+aggregate(Win_Pct.~Team, data=SoCon, max)
+
+```
+
+
+```{r}
+nlax$Prediction <- predict(model, nlax)
+write.csv(nlax, file = "C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020/Lacrosse 2020 Prediction.CSV")
+```
+
+```{r}
+if(!require(pacman)) install.packages("pacman")
+library(pacman)
+library(ggbump)
+library(devtools)
+play <- read_xlsx("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020/Playoff Teams.xlsx")
+
+devtools::install_github("https://github.com/davidsjoberg/ggbump")
+# https://github.com/davidsjoberg/ggbump
+
+ggplot(play, aes(Week, Seed, color = Team)) +
+    geom_bump()
+
+# I think I can get this to work if I download version 3.6.3
+
+#I'm trying to find how to do the bump chart.  I can't find where to download the package. I think I need to download from below sie.   https://github.com/davidsjoberg/ggbump
+```
+
+
+
+```{r}
+
+Lax_Decision_Tree <- ctree(as.factor(Result) ~ Win_Pct. + Margin + Fos_Pct. + GB_Per_Game + AST_Per_Game + Clear_Pct., data = train)
+
+columncol<-c("steelblue",  "chartreuse3", "burlywood4", "firebrick1")
+
+labelcol<-"lightsteelblue1"
+```
+
+```{r}
+plot(Lax_Decision_Tree, inner_panel = node_inner(Lax_Decision_Tree, fill = labelcol), terminal_panel=node_barplot(Lax_Decision_Tree, col = "black", fill = columncol[c(1,2,3,4)], beside = TRUE), jpeg("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020//Lacrosse Decision Tree.jpeg", width=2000, height=750 ))
+```
+
