@@ -1,0 +1,168 @@
+---
+title: "Playoff Prediction 2020"
+author: "Kyle Olsen"
+date: "2/12/2020"
+output: word_document
+---
+
+```{r}
+# I created this this predict which NCAA Lacrosse teams will make it to the NCAA Lacrosse Playoff. Unfortunately due to Covid-19 the season was cut short.  I collected the data from the below site. 
+
+# https://stats.ncaa.org/rankings/change_sport_year_div
+```
+
+
+
+```{r setup}
+library(psych)
+library(caret)
+library(rminer)
+library(tidyverse)
+library(rmarkdown)
+library(readr)
+library(ggplot2)
+library(readxl)
+library(klaR)
+library(MASS)
+library(aod)
+library(dplyr)
+library(IMTest)
+library(corrplot)
+library(IMTest)
+library(partykit)
+library(ggbump)
+lax <- read_xlsx("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020/Lacrosse Season Stats (2014 - 2019).xlsx")
+nlax <- read_xlsx("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020/lax new.xlsx")
+play <- read_xlsx("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020/Playoff Teams.xlsx")
+```
+
+
+```{r}
+# Creating training and test data sets.
+
+rows <- createDataPartition(lax$Final_4, times = 1, p = .7, list = FALSE)
+
+train <- lax[rows,]
+test <- lax[-rows,]
+
+#Exploratory Data Analysis
+
+summary(lax)
+summary(nlax)
+str(lax)
+str(nlax)
+
+table(nlax$Conference)
+colnames(lax)
+colnames(nlax)
+```
+
+
+```{r}
+# Reviewing feature of dataset. 
+pairs.panels(lax[c("Win_Pct.", "Goals", "Goals_Allowed", "Margin", "EMO_Pct.",  "OPP_EMO_Pct.", "Fos_Pct.", "Shots", "Shot_Pct.", "GB_Per_Game", "Clear_Pct.", "AST_Per_Game")]) 
+```
+
+
+```{r}
+# Individual Plots 
+
+ggplot(lax, aes(x=Win_Pct., y=Margin, color = Result)) +
+  geom_point() +
+  #stat_smooth(se = FALSE) +
+  ylab("Margin") +
+  xlab("Win Percentage") +
+  ggtitle("Win Percentage and Goal Differential") +
+  jpeg("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020//Win Percentage and Goal Differential.jpeg", width=500, height=320 )
+
+ggplot(lax, aes(x=Win_Pct., y=Fos_Pct., color = Result)) +
+  geom_point() +
+  #stat_smooth(se = FALSE) +
+  ylab("Face Off Win Percentage") +
+  xlab("Win Percentage") +
+  ggtitle("Win Percentage and Face Off Percentage")
+
+ggplot(lax, aes(x=Win_Pct., y=GB_Per_Game, color = Result)) +
+  geom_point() +
+  #stat_smooth(se = FALSE) +
+  ylab("Groun Balls per Game") +
+  xlab("Win Percentage") +
+  ggtitle("Win Percentage and Ground Balls")
+
+ggplot(lax, aes(x=Win_Pct., y=Clear_Pct., color = Result)) +
+  geom_point() +
+  #stat_smooth(se = FALSE) +
+  ylab("Clear Percentage") +
+  xlab("Win Percentage") +
+  ggtitle("Win Percentage and Clear Percentage")
+
+ggplot(lax, aes(x=Win_Pct., y=AST_Per_Game, color = Result)) +
+  geom_point() +
+  #stat_smooth(se = FALSE) +
+  ylab("Assist per Game") +
+  xlab("Win Percentage") +
+  ggtitle("Win Percentage and Assist per Game")
+```
+
+
+
+```{r}
+# Training Model
+model <- train(as.factor(Playoffs) ~ Margin + Win_Pct. + AST_Per_Game * Shot_Pct. + Shots + GB_Per_Game + Fos_Pct. + EMO_Pct.,
+      data = train,
+      preProcess = c("center","scale"),
+      method="knn")
+```
+
+
+```{r}
+# Testing model's accuracy 
+predict_model <- predict(model, test)
+confusionMatrix(table(predict_model, test$Final_4))
+```
+
+
+```{r}
+# These aggregate calculations are to review which teams have the best win percentage within there conference.  In NCAA Lacrosse most conference tournament winners recieve an automatic bid the the playoff.  This creates a hickup for my model.  Therefore, I adjuste the predictions based on teams that project to win conference tournaments. 
+
+C <- nlax[c("Conference","Team","Win_Pct.")]
+ACC <- subset(C, Conference == "ACC")
+AE <- subset(C, Conference == "America East")
+BE <- subset(C, Conference == "Big East")
+B10 <- subset(C, Conference == "Big Ten")
+Ind <- subset(C, Conference == "DI Independent")
+Ivy <- subset(C, Conference == "Ivy League")
+Maac <- subset(C, Conference == "MAAC")
+NEC <- subset(C, Conference == "NEC")
+Patriot <- subset(C, Conference == "Patriot")
+SoCon <- subset(C, Conference == "SoCon")
+
+aggregate(Win_Pct.~Team, data=ACC, max)
+aggregate(Win_Pct.~Team, data=AE, max)
+aggregate(Win_Pct.~Team, data=BE, max)
+aggregate(Win_Pct.~Team, data=B10, max)
+aggregate(Win_Pct.~Team, data=Ind, max)
+aggregate(Win_Pct.~Team, data=Ivy, max)
+aggregate(Win_Pct.~Team, data=Maac, max)
+aggregate(Win_Pct.~Team, data=NEC, max)
+aggregate(Win_Pct.~Team, data=Patriot, max)
+aggregate(Win_Pct.~Team, data=SoCon, max)
+
+```
+
+
+```{r}
+# Predicting model to 2020 season.
+
+nlax$Prediction <- predict(model, nlax)
+
+# This indicates plots the changes ove the weeks
+
+ggplot(play, aes(Week, Seed, color = Team)) +
+    geom_bump() +
+    ggtitle("Playoff Seed change over Time") +
+    jpeg("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020//Playoff Seed change over Time.jpeg", width=500, height=320 )
+
+write.csv(nlax, file = "C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020/Lacrosse 2020 Prediction.CSV")
+```
+
