@@ -1,0 +1,180 @@
+---
+title: "Online Retail"
+author: "Kyle Olsen"
+date: "7/2/2020"
+output: html_document
+---
+
+```{r}
+library(tidyr)
+library(tidyverse) 
+library(cluster)    
+library(factoextra) 
+library(gridExtra)
+library(stats)
+library(readxl)
+library(caret)
+library(ggplot2)
+
+o <- read_excel("C:/Users/olsenky/Desktop/ML/Clustering/online retail/online_retail.xlsx")
+```
+
+## Data Preparation
+
+```{r}
+# Subsetting to only Countries in North and South America.  
+o <- subset(o, Country == "USA" | Country == "Canada" | Country == "Bermuda" | Country == "Brazil" | Country == "Channel Islands")
+
+# Removing outliers
+o <- subset(o, Price < 51)
+o <- subset(o, Quantity < 500)
+o <- subset(o, Quantity > 0)
+```
+
+## Exploratory Data Analysis
+
+```{r}
+summary(o)
+str(o)
+
+ggplot(o, aes(x = InvoiceDate, y = Quantity)) +
+  geom_line(color = "steelblue") +
+  ggtitle("Sales Volume over Time")
+
+ggplot(o, aes(x= Country, y = Quantity)) +
+  geom_col(fill = "tomato") +
+  ggtitle("Sales Volume by Country")
+
+ggplot(o, aes(x= factor(o$`Customer ID`), y = Quantity, fill = Country)) +
+  geom_col() +
+  xlab("") +
+  ggtitle("Customer ID Sales Volume")
+```
+
+## Data Cleaning and Preparation
+
+```{r}
+# Preparing data for analysis
+o_c <- o[,c("Quantity","Price")]
+
+o_c <- na.omit(o_c)
+# o_c <- as.data.frame(scale(o_c))
+```
+
+```{r}
+# Using elbow method appears 6 is the optimal number of clusters.
+set.seed(123)
+
+fviz_nbclust(o_c, kmeans, method = "wss")
+ggsave("C:/Users/olsenky/Desktop/ML/Clustering/online retail/Online Retail Elbow Visual.jpeg", width=7, height=5)
+```
+
+```{r}
+k6 <- kmeans(o_c, centers = 6, nstart = 25)
+
+# plots to compare
+p1 <- fviz_cluster(k6, geom = "point", data = o_c) + ggtitle("k = 6")
+
+plot(p1) +
+  ggtitle("Online Retail Clusters")
+
+ggsave("C:/Users/olsenky/Desktop/ML/Clustering/online retail/Online Retail Clusters.jpeg", width=7, height=5)
+```
+
+```{r}
+o$Cluster <- k6$cluster
+write.csv(o, file = "C:/Users/olsenky/Desktop/ML/Clustering/online retail/Americas Clustering Analysis.csv")
+```
+
+```{r}
+
+a <- read_csv("C:/Users/olsenky/Desktop/ML/Clustering/online retail/Americas Clustering Analysis.csv")
+
+ggplot(a, aes(x = as.factor(Cluster), y = Quantity, color = as.factor(Cluster))) +
+  geom_boxplot() +
+  ggtitle("Sales Volume by Cluster") +
+  ggsave("C:/Users/olsenky/Desktop/ML/Clustering/online retail/Sales Volume by Cluster.jpeg", width=7, height=5)
+
+ggplot(a, aes(x = as.factor(Cluster), y = Price, color = as.factor(Cluster))) +
+  geom_boxplot() +
+  ggtitle("Price by Cluster") + 
+  ggsave("C:/Users/olsenky/Desktop/ML/Clustering/online retail/Price by Cluster.jpeg", width=7, height=5)
+
+ggplot(a, aes(x = Country, y = Quantity, fill = as.factor(Cluster))) +
+  geom_col() +
+  ggtitle("Cluster by Country") +
+  ggsave("C:/Users/olsenky/Desktop/ML/Clustering/online retail/Cluster by Country.jpeg", width=7, height=5)
+```
+
+```{r}
+Cluster_1 <- subset(a, Cluster == 1)
+Cluster_2 <- subset(a, Cluster == 2)
+Cluster_3 <- subset(a, Cluster == 3)
+Cluster_4 <- subset(a, Cluster == 4)
+Cluster_5 <- subset(a, Cluster == 5)
+Cluster_6 <- subset(a, Cluster == 6)
+```
+
+## Cluster Summary
+
+```{r}
+# Cluster 1
+# Low quantity, med price to 10
+median(Cluster_1$Price)
+range(Cluster_1$Price)
+median(Cluster_1$Quantity)
+range(Cluster_1$Quantity)
+```
+
+```{r}
+# Cluster 2
+# High quantity, but low price unter 3 dollars
+median(Cluster_2$Price)
+range(Cluster_2$Price)
+median(Cluster_2$Quantity)
+range(Cluster_2$Quantity)
+```
+
+```{r}
+# Cluster 3
+# Medium price, but very low quantity
+median(Cluster_3$Price)
+range(Cluster_3$Price)
+median(Cluster_3$Quantity)
+range(Cluster_3$Quantity)
+```
+
+```{r}
+# Cluster 4
+# Low price, and medium quantity
+median(Cluster_4$Price)
+range(Cluster_4$Price)
+median(Cluster_4$Quantity)
+range(Cluster_4$Quantity)
+```
+
+```{r}
+# Cluster 5
+# Hight price and low quantity
+median(Cluster_5$Price)
+range(Cluster_5$Price)
+median(Cluster_5$Quantity)
+range(Cluster_5$Quantity)
+```
+
+```{r}
+# Cluster 6
+# very high quantity and low price
+median(Cluster_6$Price)
+range(Cluster_6$Price)
+median(Cluster_6$Quantity)
+range(Cluster_6$Quantity)
+```
+
+
+
+
+
+
+
+
