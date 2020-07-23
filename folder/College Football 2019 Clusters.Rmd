@@ -1,0 +1,90 @@
+---
+title: "College Football Clustering"
+author: "Kyle Olsen"
+date: "7/17/2020"
+output: html_document
+---
+
+```{r}
+library(tidyverse)  # data manipulation
+library(cluster)    # clustering algorithms
+library(factoextra) # clustering algorithms & visualization
+library(gridExtra)
+library(readxl)
+library(ggplot2)
+
+pass_d <- read_excel("C:/Users/olsenky/Desktop/ML/Clustering/College Football/Pass D Stats.xlsx")
+
+pass_o <- read_excel("C:/Users/olsenky/Desktop/ML/Clustering/College Football/Pass Stats.xlsx")
+
+rush_d <- read_excel("C:/Users/olsenky/Desktop/ML/Clustering/College Football/Rush D Stats.xlsx")
+
+rush_o <- read_excel("C:/Users/olsenky/Desktop/ML/Clustering/College Football/Rush Stats.xlsx")
+
+time <- read_excel("C:/Users/olsenky/Desktop/ML/Clustering/College Football/Time of Possession Stats.xlsx")
+
+over <- read_excel("C:/Users/olsenky/Desktop/ML/Clustering/College Football/Turn Over Stats.xlsx")
+```
+
+## R Markdown
+
+```{r}
+team <- pass_d[c("Team", "Win", "Loss")]
+pass_d <- pass_d[c("Pass_D_YPG")]
+pass_o <- pass_o[c("Pass_YPG")]
+rush_d <- rush_d[c("Rush_D_YPG")]
+rush_o <- rush_o[c("Rush_YPG")]
+over <- over[("Margin")]
+
+data <- cbind(pass_d, pass_o, rush_d, rush_o, over)
+
+d <- scale(data)
+```
+
+## Including Plots
+
+```{r}
+set.seed(100)
+
+fviz_nbclust(d, kmeans, method = "wss")
+```
+
+```{r}
+k6 <- kmeans(d, centers = 6, nstart = 25)
+
+# plots to compare
+p1 <- fviz_cluster(k6, geom = "point", data = d) + ggtitle("k = 6")
+
+plot(p1) +
+  ggtitle("College Football Clusters")
+```
+
+```{r}
+Football_Data <- cbind(team, data)
+
+Football_Data$Group <- k6$cluster
+
+head(Football_Data)
+```
+
+```{r}
+ggplot(Football_Data, aes(x= Group, y= Pass_D_YPG)) +
+  geom_col()
+
+by(Football_Data, Football_Data$Group, summary)
+```
+
+```{r}
+Football_Data$Cluster <- ifelse(Football_Data$Group == 1, "Pass Heavy Offense", "")
+Football_Data$Cluster <- ifelse(Football_Data$Group == 2, "Balanced Team", Football_Data$Cluster)
+Football_Data$Cluster <- ifelse(Football_Data$Group == 3, "Tough Defense", Football_Data$Cluster)
+Football_Data$Cluster <- ifelse(Football_Data$Group == 4, "Rush Heavy Offense", Football_Data$Cluster)
+Football_Data$Cluster <- ifelse(Football_Data$Group == 5, "Weak Team", Football_Data$Cluster)
+Football_Data$Cluster <- ifelse(Football_Data$Group == 6, "Elite Team", Football_Data$Cluster)
+
+```
+
+```{r}
+write.csv(Football_Data, "C:/Users/olsenky/Desktop/ML/Clustering/College Football/College Football 2019 Clusters.csv")
+```
+
