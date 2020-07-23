@@ -1,0 +1,95 @@
+---
+title: "Untitled"
+author: "Kyle Olsen"
+date: "7/7/2020"
+output: html_document
+---
+
+```{r}
+library(tidyr)
+library(tidyverse) 
+library(cluster)    
+library(factoextra) 
+library(gridExtra)
+library(stats)
+library(readxl)
+library(caret)
+library(ggplot2)
+library(arules)
+library(reshape)
+library(arulesViz)
+
+t <- read.transactions("C:/Users/olsenky/Desktop/ML/Association Rules/online data/Austria Denmark, Finland Online Transactions.csv", sep = ",")
+```
+
+## Exploratory Data Analysis
+
+```{r}
+str(t)
+summary(t)
+head(t)
+
+itemFrequencyPlot(t, topN = 20)
+```
+
+## Training Rules
+
+```{r}
+rules <- apriori(t, parameter = list(support =
+                          0.05, confidence = 0.50, minlen = 2))
+
+rules.sorted <- sort(rules, by="lift")
+
+inspect(rules.sorted)
+```
+
+## Inspect Rules
+
+```{r}
+bag_rules <- subset(rules, items %in% "RED SPOTTY CHARLOTTE BAG")
+inspect(bag_rules)
+
+bake_rules <- subset(rules, items %in% "BAKING SET 9 PIECE RETROSPOT")
+inspect(bake_rules)
+
+green_rules <- subset(rules, items %in% "GREEN 3 PIECE MINI DOTS CUTLERY SET")
+inspect(green_rules)
+```
+
+## Plotting Rules
+
+```{r}
+# RED SPOTTY CHARLOTTE BAG Rules
+plot(bag_rules, method="graph", control=list(type="items"))
+plot(bag_rules)
+```
+
+```{r}
+# BAKING SET 9 PIECE RETROSPOT Rules
+plot(bake_rules, method="graph", control=list(type="items"))
+plot(bake_rules)
+```
+
+```{r}
+# GREEN 3 PIECE MINI DOTS CUTLERY SET Rules
+plot(green_rules, method="graph", control=list(type="items"))
+plot(green_rules)
+```
+
+## Writing Rules
+
+```{r}
+write(rules, file = "C:/Users/olsenky/Desktop/ML/Association Rules/online data/online rules.csv",
+      sep = ",", quote = TRUE, row.names = FALSE)
+
+write(bag_rules, file = "C:/Users/olsenky/Desktop/ML/Association Rules/online data/bag online rules.csv",
+      sep = ",", quote = TRUE, row.names = FALSE)
+
+write(bake_rules, file = "C:/Users/olsenky/Desktop/ML/Association Rules/online data/bake online rules.csv",
+      sep = ",", quote = TRUE, row.names = FALSE)
+
+write(green_rules, file = "C:/Users/olsenky/Desktop/ML/Association Rules/online data/green set rules.csv",
+      sep = ",", quote = TRUE, row.names = FALSE)
+```
+
+
