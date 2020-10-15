@@ -1,0 +1,122 @@
+---
+title: "Lacrosse PCA"
+author: "Kyle Olsen"
+date: "10/14/2020"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+library("FactoMineR")
+library("factoextra")
+library("readxl")
+lax <- read_xlsx("C:/Users/olsenky/Desktop/ML/Lacrosse/Playoff Prediction 2020/Lacrosse Season Stats (2014 - 2019).xlsx")
+
+# http://www.sthda.com/english/articles/31-principal-component-methods-in-r-practical-guide/112-pca-principal-component-analysis-essentials/
+```
+
+## Introduction
+```{r}
+# The goal of Principle Component Analysis is to identify directions and the variations within the dataset. We use eigenvalues to measure the amount of variance of each principle component.  
+```
+
+```{r, include=FALSE}
+# Getting to just the numeric features
+head(lax)
+
+l <- lax[4:29]
+head(l)
+```
+
+## First Steps
+```{r}
+# Start by using the prcomp function.  Next, we find the eigenvalue for each of the principal component.  To find the eigenvalue we use the get_eigenvalue function.  Components that are greater thatn 1 are significant.  
+
+# In the first table you can see the eigenvalue.  The first 6 components are greater that 1, so we will focus on these.  
+
+# In the second table you can see the Standard Deviation, Proportion of Variance, and Cumulative Proportion of Variance.  The Proportion of variance states how much variance is explained by this component.  The Cumulative Proportion of Variance shows how much variance is explained by it and the preceeding components. 
+
+# As you can see the first 6 components explains 84% of the variance.  
+
+lax.pca <- prcomp(l, center = TRUE,scale. = TRUE)
+get_eigenvalue(lax.pca)
+summary(lax.pca)
+# 
+```
+
+```{r}
+# This plots the amount of variance explained by each component.    
+fviz_eig(lax.pca, addlabels = TRUE, ylim = c(0, 50))
+```
+
+## Features within each Component
+```{r}
+# The below plots show the features contained in each component.  The red line indicates the expected average contribution.  If the contribution is above the red line then it's concidered important.  
+
+fviz_contrib(lax.pca, choice = "var", axes = 1, top = 15)
+
+fviz_contrib(lax.pca, choice = "var", axes = 2, top = 10)
+
+fviz_contrib(lax.pca, choice = "var", axes = 3, top = 10)
+
+fviz_contrib(lax.pca, choice = "var", axes = 4, top = 10)
+
+fviz_contrib(lax.pca, choice = "var", axes = 5, top = 10)
+
+fviz_contrib(lax.pca, choice = "var", axes = 6, top = 10)
+```
+
+## Here I list the features contained in each component. 
+```{r}
+#PC1 47.9% - Goals + Assists + Ground_Balls + Win + TM_FOT + Shots + Margin + Fos_Won + Win_Pct. + AST_Per_Game + Games + Loss + Shot_Pct. + Clears + EMO_Goals
+
+#PC2 13% - Goals_Allowed + Fos_Lost + OPP_EMO_GA + Loss + Fos_Pct. + Margin + Win_Pct. + Clear_Pct. + OPP_EMO_ATT 
+
+#PC3 7.5% - Fos_Pct. + Fos_Lost + Fos_Won + GB_Per_Game + OPP_EMO_GA + Clears + Clear_Pct. + OPP_EMO_Pct. + Clear_Att
+
+#PC4 6.3% - EMO_PCt. + Clear_Att + OPP_EMO_Pct. + EMO_Goals + Clears + Shot_Pct. + OPP_EMO_GA + Clear_Pct. 
+
+#PC5 5% - OPP_EMO_ATT + OPP_EMO_GA + Goals_Allowed + EMO_Attempts + EMO_Pcts. AST_Per_Game
+
+#PC6 4.5% - OPP_EMO_Pct. + EMO_Goals + EMO_Attempts + EPP_EMO_GA + EMO_Pct.
+```
+
+## Plotting Features
+```{r}
+# These plot each feature from the dataset.  Possitive and Negative features are grouped together.  The distance from the center measures the quality of the feature.  I also added color based on the contribution the feature has on the component.  
+
+fviz_pca_var(lax.pca, col.var = "contrib", geom.var = c("point", "text"),
+        gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+```
+
+```{r}
+# The below plot contain the same information as the previous plot, but it's colored by similarity of features.  Yellow are positive features, Blue are negative featues, and grey don't fit into either positive or negative.   
+var <- get_pca_var(lax.pca)
+
+set.seed(123)
+res.km <- kmeans(var$coord, centers = 3, nstart = 25)
+grp <- as.factor(res.km$cluster)
+
+fviz_pca_var(lax.pca, col.var = grp, geom.var = c("point", "text"), 
+             palette = c("#0073C2FF", "#EFC000FF", "#868686FF"),
+             legend.title = "Cluster")
+```
+
+## Conclusion
+```{r}
+# Principle Component Analysis is meant to give better understnd of the "components" of a dataset.  We can also use Principle Component Analysis to reduce the dimensionality of the data.  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
