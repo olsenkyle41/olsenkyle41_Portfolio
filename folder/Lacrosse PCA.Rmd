@@ -105,7 +105,7 @@ fviz_pca_var(lax.pca, col.var = grp, geom.var = c("point", "text"),
 
 ## Conclusion
 ```{r}
-# Principle Component Analysis is meant to give better understnd of the "components" of a dataset.  We can also use Principle Component Analysis to reduce the dimensionality of the data.  
+# Principle Component Analysis is meant to give better understanding of the "components" of a dataset.  We can also use Principle Component Analysis to reduce the dimensionality of the data.  
 ```
 
 
