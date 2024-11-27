@@ -1,1 +1,160 @@
+library(shiny)
+library(ggplot2)
+library(ggforce)
+library(tidyverse)
+library(shinyWidgets)
+library(rsconnect)
 
+# This App is a shot distribution for a Lacrosse Team.  This can be used to evaluate if a team was able to get quality shots over a game.
+# Goal are color coded, and there are filters for the individual player and each game. App
+# https://olsenkyle41.shinyapps.io/Example_Shot_Dashboard/
+
+shots <- read.csv("Shots Test Data.csv")
+d_shots <- read.csv("Shots Test Defense Data.csv")
+
+ui <- fluidPage(
+
+    # Title
+    titlePanel(tags$b("Example Shot Distribution")),
+    titlePanel("Team Distibution"),
+
+    # Sidebar
+     sidebarLayout(
+        sidebarPanel(
+             selectInput(
+               inputId = "selected_game",
+               label = "Selected Game",
+               choices = unique(shots$Game),
+               selected = 1,
+               width = "100%"
+             ),  
+            
+         ),
+
+        # Distribution
+        mainPanel(
+           plotOutput("distPlot2"),
+           plotOutput("BarPlot")
+        )
+    ),
+    titlePanel("Player Distribution"),
+    sidebarPanel(
+      selectInput(
+        inputId = "selected_player",
+        label = "Selected Player",
+        choices = unique(shots$Player),
+        multiple = FALSE,
+        selected = 1,
+        width = "100%"
+      ),  
+    ),
+    
+    # Distribution
+    mainPanel(
+      plotOutput("distPlot")
+    ),
+    
+    titlePanel("Defense Distribution"),
+    sidebarPanel(
+      selectInput(
+        inputId = "selected_game2",
+        label = "Selected Game",
+        choices = unique(d_shots$Game),
+        multiple = FALSE,
+        selected = 1,
+        width = "100%"
+      ),  
+    ),
+    
+    # Distribution
+    mainPanel(
+      plotOutput("distPlot3")
+    )
+)
+
+server <- function(input, output) {
+  
+   filter_data <- reactive({
+     shots %>%
+       filter(
+         Player == input$selected_player,
+         Game == input$selected_game
+       )
+   })
+  
+    output$distPlot <- renderPlot({
+      ggplot(filter_data(), aes(x=Width,y=Height)) +
+        geom_point(aes(color = Result), size = 2, alpha = .5) +
+        scale_color_manual(values = c("red", "black")) +
+        scale_x_continuous(limits = c(0, 60)) +
+        scale_y_continuous(limits = c(0, 55)) +
+        geom_segment(aes(x = 10, y = 35, xend = 50, yend = 35)) +
+        geom_segment(aes(x = 10, y = 35, xend = 10, yend = 0)) +
+        geom_segment(aes(x = 50, y = 35, xend = 50, yend = 0)) +
+        geom_segment(aes(x = 29, y = 15, xend = 31, yend = 15)) +
+        geom_circle(aes(x0=30, y0=15, r=3)) +
+        xlab("Yards") + 
+        ylab("Yards") +
+        theme_minimal()
+      
+    })
+    
+    output$BarPlot <- renderPlot({ggplot(filter_data2(), aes(x=Player,y=Shot, fill = Result)) +
+        geom_col(position = position_stack(reverse = TRUE)) +
+        scale_fill_manual(values = c("red", "grey")) +
+        geom_text(aes(label = after_stat(y), group = Result), stat = 'summary', fun = sum, vjust = -1) +
+        theme_minimal()
+    })
+    
+    filter_data2 <- reactive({
+      shots %>%
+        filter(
+          Game == input$selected_game
+        )
+    })
+    
+    output$distPlot2 <- renderPlot({
+      ggplot(filter_data2(), aes(x=Width,y=Height)) +
+        geom_point(aes(color = Result), size = 2, alpha = .5) +
+        scale_color_manual(values = c("red", "black")) +
+        scale_x_continuous(limits = c(0, 60)) +
+        scale_y_continuous(limits = c(0, 55)) +
+        geom_segment(aes(x = 10, y = 35, xend = 50, yend = 35)) +
+        geom_segment(aes(x = 10, y = 35, xend = 10, yend = 0)) +
+        geom_segment(aes(x = 50, y = 35, xend = 50, yend = 0)) +
+        geom_segment(aes(x = 29, y = 15, xend = 31, yend = 15)) +
+        geom_circle(aes(x0=30, y0=15, r=3)) +
+        xlab("Yards") + 
+        ylab("Yards") +
+        theme_minimal()
+      
+    })
+    
+    filter_data3 <- reactive({
+      d_shots %>%
+        filter(
+          Game == input$selected_game2
+        )
+    })
+    
+    output$distPlot3 <- renderPlot({
+      ggplot(filter_data3(), aes(x=Width,y=Height)) +
+        geom_point(aes(color = Result), size = 2, alpha = .5) +
+        scale_color_manual(values = c("red", "black")) +
+        scale_x_continuous(limits = c(0, 60)) +
+        scale_y_continuous(limits = c(0, 55)) +
+        geom_segment(aes(x = 10, y = 35, xend = 50, yend = 35)) +
+        geom_segment(aes(x = 10, y = 35, xend = 10, yend = 0)) +
+        geom_segment(aes(x = 50, y = 35, xend = 50, yend = 0)) +
+        geom_segment(aes(x = 29, y = 15, xend = 31, yend = 15)) +
+        geom_circle(aes(x0=30, y0=15, r=3)) +
+        xlab("Yards") + 
+        ylab("Yards") +
+        theme_minimal()
+      
+    })
+    
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
