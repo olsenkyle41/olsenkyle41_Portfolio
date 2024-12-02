@@ -1,1 +1,103 @@
+import pandas as pd
+import numpy as np
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+from statsmodels.tsa.statespace.sarimax import SARIMAX
+import statsmodels.formula.api as smf
 
+
+query = f"""
+select * from table
+"""
+
+df = spark.sql(query)
+df = df.toPandas()
+df['date'] = pd.to_datetime(df['date'])
+df['data'] = df['data'].astype(float)
+
+df = df.set_index(pd.Index(df['date']))
+df = df.drop('date', axis=1)
+df.tail(5)
+
+###########################################
+
+# Plot the time series data
+df.plot(figsize=(14, 6))
+plt.title('Sample Time Series Data')
+plt.show()
+
+# Fit the ARIMA model
+from statsmodels.tsa.arima.model import ARIMA
+
+# Define the model (p, d, q)
+p = 1  # autoregressive part
+d = 1  # differencing part
+q = 1  # moving average part
+
+model = ARIMA(df['data'], order=(p, d, q))
+model_fit = model.fit()
+
+# Summary of the model
+print(model_fit.summary())
+
+# Make predictions
+start = '2024-05-27'
+end = '2024-09-30' 
+forecast_arima = model_fit.predict(start=start, end=end, typ='levels')
+
+# Plot the forecast
+df['data'].plot(figsize=(20, 6), label='Original')
+forecast_arima.plot(label='Forecast')
+plt.legend()
+plt.title('ARIMA Model Forecast')
+plt.show()
+
+##############################################
+
+# Plot the data
+df.plot(figsize=(14, 6))
+plt.title('Sample Time Series Data')
+plt.show()
+
+# Define the SARIMA model parameters
+p = 1  # autoregressive part
+d = 1  # differencing part
+q = 1  # moving average part
+P = 1  # seasonal autoregressive part
+D = 1  # seasonal differencing part
+Q = 1  # seasonal moving average part
+s = 12 # length of the seasonality (e.g., 12 for monthly data)
+
+# Fit the SARIMA model
+model = SARIMAX(df['data'], order=(p, d, q), seasonal_order=(P, D, Q, s))
+model_fit = model.fit()
+
+# Summary of the model
+print(model_fit.summary())
+
+# Make predictions
+start = '2024-05-27'
+end = '2024-09-30' 
+forecast_sarima = model_fit.predict(start=start, end=end, typ='levels')
+
+# Plot the forecast
+df['data'].plot(figsize=(20, 6), label='Original')
+forecast_sarima.plot(label='Forecast')
+plt.legend()
+plt.title('SARIMA Model Forecast')
+plt.show()
+
+################################################
+
+forecast_arima
+forecast_sarima
+
+orecast_a_df = pd.DataFrame(forecast_arima)
+forecast_s_df = pd.DataFrame(forecast_sarima)
+
+forecast_a_df['date'] = forecast_a_df.index
+forecast_s_df['date'] = forecast_s_df.index
+
+forecast_a_df.columns = ['arima_predicted_apps', 'date']
+forecast_s_df.columns = ['sarima_predicted_apps', 'date']
