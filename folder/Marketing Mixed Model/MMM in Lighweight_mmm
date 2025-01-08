@@ -1,6 +1,5 @@
 #Set Up
-```
-%pip install scikit-learn --upgrade
+```%pip install scikit-learn --upgrade
 %pip install numpy --upgrade
 %pip install pandas --upgrade
 %pip install xgboost
@@ -8,8 +7,7 @@
 %pip install lightgbm
 %pip install --upgrade git+https://github.com/google/lightweight_mmm.git
 %pip install Jinja2
-%pip install scipy==1.10.0
-```
+%pip install scipy==1.10.0```
 
 ```
 import pandas as pd
