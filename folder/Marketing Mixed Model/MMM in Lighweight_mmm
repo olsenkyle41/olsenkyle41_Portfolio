@@ -1,0 +1,168 @@
+#Set Up
+```
+%pip install scikit-learn --upgrade
+%pip install numpy --upgrade
+%pip install pandas --upgrade
+%pip install xgboost
+%pip install acv-exp
+%pip install lightgbm
+%pip install --upgrade git+https://github.com/google/lightweight_mmm.git
+%pip install Jinja2
+%pip install scipy==1.10.0
+```
+```
+import pandas as pd
+import numpy as np
+from numpy.random import randn
+from matplotlib import pyplot as plt
+import datetime
+from dateutil.relativedelta import relativedelta
+import jax.numpy as jnp
+import numpyro
+#from scipy.ndimage.filters import gaussian
+#from scipy.ndimage import gaussian_filter
+from lightweight_mmm import lightweight_mmm
+from lightweight_mmm import optimize_media
+from lightweight_mmm import plot
+from lightweight_mmm import preprocessing
+from lightweight_mmm import utils
+from sklearn.model_selection import train_test_split
+import arviz as az
+seed = 100
+```
+#Pulling Data
+```
+complete_data = spark.sql(query)
+complete_data = complete_data.toPandas()
+complete_data['Week'] = pd.to_datetime(complete_data['Week'])
+complete_data['Target_Variable'] = complete_data['Target_Variable'].astype(float)
+complete_data['chanel_11'] = complete_data['channel_11'].astype(float)
+complete_data
+```
+#Aggreating Costs
+```
+Channel_1_cost = complete_data['channel_1_spend'].sum()
+Channel_2_cost = complete_data['channel_1_spend'].sum()
+Channel_3_cost = complete_data['channel_3_spend'].sum()
+Channel_4_cost = complete_data['channel_4_spend'].sum()
+Channel_5_cost = complete_data['channel_5_spend'].sum()
+Channel_6_cost = complete_data['channel_6_spend'].sum()
+Channel_7_cost = complete_data['channel_7_spend'].sum()
+Channel_8_cost = complete_data['channel_8_spend'].sum()
+Channel_9_cost = complete_data['channel_9_spend'].sum()
+Channel_10_cost = complete_data['channel_10_spend'].sum()
+Channel_11_cost = complete_data['channel_11_spend'].sum()
+
+costs = (Channel_1_cost, Channel_2_cost, Channel_3_cost, Channel_4_cost, Channel_5_cost, Channel_6_cost, Channel_7_cost, Channel_8_cost, Channel_9_cost, Channel_10_cost, Channel_11_cost)
+```
+
+#Train and Test Datasets
+```
+y = complete_data.iloc[:,1]
+x = complete_data.iloc[:, complete_data.columns != 'Target_Variable']
+
+Testing on last quarter or last 13 weeks
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.0896551 , shuffle=False)
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=thirteen_weeks , shuffle=False)
+
+impressions_data_train = x_train[['Channel_1_Impressions', 'Channel_2_Impressions', 'Channel_3_impressions','Channel_4_impressions', 'Channel_5_impressions', 'Channel_6_Impressions', 'Channel_7_impressions', 'Channel_8_impressions', 'Channel_9_impressions', 'Channel_10_Impressions', 'Channel_11_impressions']]
+impressions_data_test = x_test[['Channel_1_Impressions', 'Channel_2_Impressions', 'Channel_3_impressions','Channel_4_impressions', 'Channel_5_impressions', 'Channel_6_Impressions', 'Channel_7_impressions', 'Channel_8_impressions', 'Channel_9_impressions', 'Channel_10_Impressions', 'Channel_11_impressions']]
+impressions_data_full = x[['Channel_1_Impressions', 'Channel_2_Impressions', 'Channel_3_impressions','Channel_4_impressions', 'Channel_5_impressions', 'Channel_6_Impressions', 'Channel_7_impressions', 'Channel_8_impressions', 'Channel_9_impressions', 'Channel_10_Impressions', 'Channel_11_impressions']]
+
+extra_features_data_train = x_train[['brand_searches', 'general_searches',	'holiday', 'season']]
+extra_features_data_test = x_test[['brand_searches', 'general_searches', 'holiday', 'season']]
+extra_features_data_full = x[['brand_searches', 'general_searches', 'holiday', 'season']]
+
+extra_features_data_train['holiday'] = extra_features_data_train['holiday'].astype(float)
+extra_features_data_train['season'] = extra_features_data_train['season'].astype(float)
+extra_features_data_test['holiday'] = extra_features_data_test['holiday'].astype(float)
+extra_features_data_test['season'] = extra_features_data_test['season'].astype(float)
+extra_features_data_full['holiday'] = extra_features_data_full['holiday'].astype(float)
+extra_features_data_full['season'] = extra_features_data_full['season'].astype(float)
+```
+
+```
+media_scaler = preprocessing.CustomScaler(divide_operation=jnp.mean)
+extra_features_scaler = preprocessing.CustomScaler(divide_operation=jnp.mean)
+target_scaler = preprocessing.CustomScaler(divide_operation=jnp.mean)
+spend_scaler = preprocessing.CustomScaler(divide_operation=jnp.mean, multiply_by=0.15)
+cost_scaler = preprocessing.CustomScaler(divide_operation=jnp.mean, multiply_by=0.15)
+
+media_train = media_scaler.fit_transform(jnp.array(impressions_data_train))
+target_train = target_scaler.fit_transform(jnp.array(y_train))
+extra_features_train = extra_features_scaler.fit_transform(jnp.array(extra_features_data_train))
+costs = cost_scaler.fit_transform(jnp.array(costs)) # I changed this recently
+
+media_full = media_scaler.fit_transform(jnp.array(impressions_data_full))
+target_full = target_scaler.fit_transform(jnp.array(y))
+extra_features_full = extra_features_scaler.fit_transform(jnp.array(extra_features_data_full))
+
+media_test = media_scaler.fit_transform(jnp.array(impressions_data_test))
+target_test = target_scaler.fit_transform(jnp.array(y_test))
+extra_features_test = extra_features_scaler.fit_transform(jnp.array(extra_features_data_test))
+
+
+media_names = ['Channel 1', 'Channel 2', 'Channel 3','Channel 4', 'Channel 5', 'Channel 6', 'Channel 7', 'Channel 8', 'Channel 9', 'Channel 10', 'Channel 11']
+
+
+train_weeks = int(len(media_train) / 7)
+reshaped_train = np.reshape(media_train, (train_weeks, 11, 7))
+reshaped_test = np.reshape(target_train, (train_weeks, 7))
+reshaped_extra_features = np.reshape(extra_features_train, (train_weeks, 4, 7))
+
+full_set_weeks = int(len(media_full) / 7)
+reshaped_full = np.reshape(media_full, (full_set_weeks, 11, 7))
+reshaped_full_test = np.reshape(target_full, (full_set_weeks, 7))
+reshaped_full_extra_features = np.reshape(extra_features_full, (full_set_weeks, 4, 7))
+
+reshaped_media_test = np.reshape(media_test, (13, 11, 7))
+reshaped_target_test = np.reshape(target_test, (13, 7))
+reshaped_extra_features_test = np.reshape(extra_features_test, (13, 4, 7))
+
+
+mmm = lightweight_mmm.LightweightMMM(model_name = "carryover")
+
+custom_priors = {"intercept": numpyro.distributions.HalfNormal(scale=intercept_halfnormal_scale),
+                 "ad_effect_retention_rate": numpyro.distributions.Beta(concentration1=retention_beta_concentration1, concentration0=retention_beta_concentration0),
+                 "coef_trend": numpyro.distributions.Uniform(low=trend_uniform_low, high=trend_uniform_high) 
+                 }
+
+mmm.fit(media=reshaped_train,
+                   extra_features=reshaped_extra_features,
+                   media_prior=costs,
+                   target=reshaped_test,
+                   number_warmup=1000,
+                   number_samples=1000
+                   ,number_chains=2
+                   ,seed=seed
+                  ,custom_priors=custom_priors)
+
+
+new_predictions = mmm.predict(media=reshaped_media_test,
+                              extra_features=reshaped_extra_features_test,
+                              #extra_features=extra_features_scaler.transform(jnp.array(extra_features_data_test)),
+                              seed=seed)
+
+plot.plot_model_fit(media_mix_model=mmm, target_scaler=target_scaler)
+
+plot.plot_out_of_sample_model_fit(out_of_sample_predictions=new_predictions,
+                                 out_of_sample_target=reshaped_target_test)
+
+mmm.print_summary()
+
+plot.plot_media_baseline_contribution_area_plot(media_mix_model=mmm,
+                                                target_scaler=target_scaler,
+                                                channel_names = media_names,
+                                                fig_size=(30,10))
+
+media_contribution, roi_hat = mmm.get_posterior_metrics(target_scaler=target_scaler, cost_scaler=cost_scaler)
+
+plot.plot_bars_media_metrics(metric=media_contribution, channel_names = media_names,  metric_name="Media Contribution Percentage")
+
+plot.plot_bars_media_metrics(metric=roi_hat, channel_names = media_names, metric_name="ROI hat", interval_mid_range = 0.9)
+
+plot.plot_response_curves(media_mix_model=mmm, target_scaler=target_scaler, seed=seed, figure_size=(15,10))
+
+plot.plot_media_channel_posteriors(media_mix_model=mmm, channel_names = media_names)
+
+plot.plot_prior_and_posterior(media_mix_model=mmm)
