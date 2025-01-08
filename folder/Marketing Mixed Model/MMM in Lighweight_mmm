@@ -1,4 +1,4 @@
-**Set Up**
+#Set Up
 ```
 %pip install scikit-learn --upgrade
 %pip install numpy --upgrade
@@ -10,7 +10,7 @@
 %pip install Jinja2
 %pip install scipy==1.10.0
 ```
-
+#Import Packages
 ```
 import pandas as pd
 import numpy as np
@@ -56,7 +56,6 @@ Channel_11_cost = complete_data['channel_11_spend'].sum()
 
 costs = (Channel_1_cost, Channel_2_cost, Channel_3_cost, Channel_4_cost, Channel_5_cost, Channel_6_cost, Channel_7_cost, Channel_8_cost, Channel_9_cost, Channel_10_cost, Channel_11_cost)
 ```
-
 #Train and Test Datasets
 ```
 y = complete_data.iloc[:,1]
@@ -81,7 +80,7 @@ extra_features_data_test['season'] = extra_features_data_test['season'].astype(f
 extra_features_data_full['holiday'] = extra_features_data_full['holiday'].astype(float)
 extra_features_data_full['season'] = extra_features_data_full['season'].astype(float)
 ```
-
+#Scaling Data
 ```
 media_scaler = preprocessing.CustomScaler(divide_operation=jnp.mean)
 extra_features_scaler = preprocessing.CustomScaler(divide_operation=jnp.mean)
@@ -101,11 +100,13 @@ extra_features_full = extra_features_scaler.fit_transform(jnp.array(extra_featur
 media_test = media_scaler.fit_transform(jnp.array(impressions_data_test))
 target_test = target_scaler.fit_transform(jnp.array(y_test))
 extra_features_test = extra_features_scaler.fit_transform(jnp.array(extra_features_data_test))
-
-
+```
+#Channel Names
+```
 media_names = ['Channel 1', 'Channel 2', 'Channel 3','Channel 4', 'Channel 5', 'Channel 6', 'Channel 7', 'Channel 8', 'Channel 9', 'Channel 10', 'Channel 11']
-
-
+```
+#Reshaping Data
+```
 train_weeks = int(len(media_train) / 7)
 reshaped_train = np.reshape(media_train, (train_weeks, 11, 7))
 reshaped_test = np.reshape(target_train, (train_weeks, 7))
@@ -119,8 +120,9 @@ reshaped_full_extra_features = np.reshape(extra_features_full, (full_set_weeks, 
 reshaped_media_test = np.reshape(media_test, (13, 11, 7))
 reshaped_target_test = np.reshape(target_test, (13, 7))
 reshaped_extra_features_test = np.reshape(extra_features_test, (13, 4, 7))
-
-
+```
+#Modelling
+```
 mmm = lightweight_mmm.LightweightMMM(model_name = "carryover")
 
 custom_priors = {"intercept": numpyro.distributions.HalfNormal(scale=intercept_halfnormal_scale),
@@ -143,27 +145,31 @@ new_predictions = mmm.predict(media=reshaped_media_test,
                               extra_features=reshaped_extra_features_test,
                               #extra_features=extra_features_scaler.transform(jnp.array(extra_features_data_test)),
                               seed=seed)
-
+```
+#Plotting Model
+```
 plot.plot_model_fit(media_mix_model=mmm, target_scaler=target_scaler)
 
 plot.plot_out_of_sample_model_fit(out_of_sample_predictions=new_predictions,
                                  out_of_sample_target=reshaped_target_test)
-
+```
+#Model Diagnostics
+```
 mmm.print_summary()
-
+media_contribution, roi_hat = mmm.get_posterior_metrics(target_scaler=target_scaler, cost_scaler=cost_scaler)
+plot.plot_media_channel_posteriors(media_mix_model=mmm, channel_names = media_names)
+plot.plot_prior_and_posterior(media_mix_model=mmm)
+```
+#Media Contributions
+```
 plot.plot_media_baseline_contribution_area_plot(media_mix_model=mmm,
                                                 target_scaler=target_scaler,
                                                 channel_names = media_names,
                                                 fig_size=(30,10))
-
-media_contribution, roi_hat = mmm.get_posterior_metrics(target_scaler=target_scaler, cost_scaler=cost_scaler)
-
 plot.plot_bars_media_metrics(metric=media_contribution, channel_names = media_names,  metric_name="Media Contribution Percentage")
-
 plot.plot_bars_media_metrics(metric=roi_hat, channel_names = media_names, metric_name="ROI hat", interval_mid_range = 0.9)
-
+```
+#Response Curves
+```
 plot.plot_response_curves(media_mix_model=mmm, target_scaler=target_scaler, seed=seed, figure_size=(15,10))
-
-plot.plot_media_channel_posteriors(media_mix_model=mmm, channel_names = media_names)
-
-plot.plot_prior_and_posterior(media_mix_model=mmm)
+```
