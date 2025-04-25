@@ -1,37 +1,51 @@
+# Install Packages
+```
 !pip install yfinance
 !pip install pycausalimpact
+```
 
+# Import Libraries
+```
 import yfinance as yf
 from causalimpact import CausalImpact
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+```
 
 # Compute correlation matrix
+```
 corr_matrix = df.corr()
 
-# Set up the matplotlib figure
 plt.figure(figsize=(10, 8))
 
-# Draw the heatmap
 sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", square=True, linewidths=0.5)
 
-# Title and show
 plt.title("Correlation Matrix")
 plt.tight_layout()
 plt.show()
+```
 
-
+# Set Date to Index
+```
+#Dates need to be listed in chronological order
 df.set_index('Month', inplace=True)
+```
 
+# Set Pre and Post Treatment Periods
+```
 pre_period = ['2023-01-31', '2024-05-31']
 post_period = ['2024-06-30', '2024-12-31']
-
+```
 
 # Run CausalImpact
+```
 ci = CausalImpact(df, pre_period, post_period)
+```
 
 # Print summary and plot
+```
 print(ci.summary())
 print(ci.summary(output='report'))
 ci.plot()
+```
